@@ -1,6 +1,57 @@
-*.db
+# Python bytecode and cache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+
+# Environments and Distributions
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+sdist/
+wheels/
+*.egg-info/
+.eggs/
+*.egg
+
+# Installer logs and configs
+.installed.cfg
+develop-eggs/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+var/
+
+# Flask/Instance specific
 instance/
-.env
+.webassets-cache
+.flaskenv
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+*.env
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Project specific uploads and logs
 uploads/
+static/uploads/
+*.log
