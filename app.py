@@ -202,6 +202,10 @@ def clock_out():
 @app.route('/clock/history')
 @login_required
 def clock_history():
+    """
+    For admins: Shows summary of all users with total hours
+    For regular users: Shows their own history
+    """
     if not current_user.has_permission('view_time_clock'):
         flash('You do not have permission to view time clock.', 'error')
         return redirect(url_for('dashboard'))
@@ -229,6 +233,9 @@ def clock_history():
 @app.route('/clock/user/<int:user_id>')
 @login_required
 def clock_user_detail(user_id):
+    """
+    Admin only: View detailed time entries for a specific user
+    """
     if not current_user.has_permission('view_all_time_entries'):
         flash('Access denied.', 'error')
         return redirect(url_for('clock_history'))
@@ -236,10 +243,12 @@ def clock_user_detail(user_id):
     user = User.query.get_or_404(user_id)
     page = request.args.get('page', 1, type=int)
     
+    # Get pagination for this user's entries
     pagination = TimeEntry.query.filter_by(user_id=user_id).order_by(
         TimeEntry.clock_in.desc()
     ).paginate(page=page, per_page=25, error_out=False)
     
+    # Calculate total hours for this user
     total_hours = db.session.query(
         func.sum(TimeEntry.total_hours)
     ).filter_by(user_id=user_id).scalar() or 0
@@ -671,11 +680,9 @@ def change_password():
             flash('New passwords do not match.', 'error')
             return redirect(url_for('change_password'))
         
-        # Validate password strength
-        errors = current_user.validate_password_strength(new_password)
-        if errors:
-            for error in errors:
-                flash(error, 'error')
+        # Basic password validation
+        if len(new_password) < 8:
+            flash('Password must be at least 8 characters long.', 'error')
             return redirect(url_for('change_password'))
         
         # Update password
@@ -723,11 +730,8 @@ def edit_user(user_id):
                 flash('Passwords do not match.', 'error')
                 return redirect(url_for('edit_user', user_id=user_id))
             
-            # Validate password strength
-            errors = user.validate_password_strength(new_password)
-            if errors:
-                for error in errors:
-                    flash(error, 'error')
+            if len(new_password) < 4:
+                flash('Password must be at least 4 characters.', 'error')
                 return redirect(url_for('edit_user', user_id=user_id))
             
             user.set_password(new_password)
@@ -823,7 +827,6 @@ def toggle_user_status(user_id):
     return redirect(url_for('admin_users'))
 
 # ==================== LOCATION MANAGEMENT ROUTES ====================
-# Replace the manage_locations route in app.py with this:
 
 @app.route('/admin/locations', methods=['GET', 'POST'])
 @login_required
@@ -1072,6 +1075,10 @@ def maintenance_ticket_edit(id):
         ticket.actual_cost = request.form.get('actual_cost') or None
         ticket.notes = request.form.get('notes')
         
+        due_date_str = request.form.get('due_date')
+        if due_date_str:
+            ticket.due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
+        
         if ticket.status == 'completed' and old_status != 'completed':
             ticket.completed_at = datetime.now()
         
@@ -1195,6 +1202,11 @@ def admin_animals():
         return redirect(url_for('animals'))
     
     locations = AnimalLocation.query.filter_by(active=True).order_by(AnimalLocation.name).all()
+    
+    # Count animals at each location
+    for location in locations:
+        location.animal_count = Animal.query.filter_by(location_id=location.id).count()
+    
     return render_template('admin_animals.html', locations=locations)
 
 @app.route('/admin/audit')
