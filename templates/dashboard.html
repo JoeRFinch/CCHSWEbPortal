@@ -14,6 +14,15 @@
 </div>
 {% endif %}
 
+<!-- LOW STOCK ALERTS - For those with inventory permissions -->
+{% if current_user.has_permission('view_inventory') and low_stock_count > 0 %}
+<div class="card" style="border-left: 4px solid #f39c12; background-color: #fff8e1; margin-bottom: 2rem;">
+    <h3 style="color: #f39c12;">⚠️ Low Stock Alert: {{ low_stock_count }} Item(s)</h3>
+    <p>{{ low_stock_count }} inventory item(s) are at or below reorder point.</p>
+    <a href="{{ url_for('inventory') }}" class="btn" style="background-color: #f39c12; color: white;">View Inventory</a>
+</div>
+{% endif %}
+
 <!-- STANDARD SECTION - Everyone sees this -->
 <div class="dashboard-section">
     <h2>My Dashboard</h2>
