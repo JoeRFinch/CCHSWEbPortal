@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>{{ item.item_name }}</h2>
+    <div>
+        {% if current_user.has_permission('edit_inventory') %}
+        <a href="{{ url_for('inventory_edit', id=item.id) }}" class="btn btn-primary">Edit</a>
+        {% endif %}
+        <a href="{{ url_for('inventory') }}" class="btn btn-secondary">Back to Inventory</a>
+    </div>
+</div>
+
+<div class="card">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <p><strong>Category:</strong> 
+                <span class="category-badge category-{{ item.category }}">{{ item.category.title() }}</span>
+            </p>
+            <p><strong>Current Quantity:</strong> 
+                <span style="font-size: 1.5rem; font-weight: bold; {{ 'color: #e74c3c;' if item.is_low_stock else 'color: #27ae60;' }}">
+                    {{ item.quantity }} {{ item.unit or '' }}
+                </span>
+                {% if item.is_low_stock %}
+                <span style="color: #e74c3c; font-size: 0.9rem;">⚠️ LOW STOCK</span>
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <p><strong>Storage Location:</strong> {{ item.location or 'Not specified' }}</p>
+            <p><strong>Reorder Point:</strong> {{ item.reorder_point or 'Not set' }}</p>
+            <p><strong>Last Updated:</strong> {{ item.updated_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+        </div>
+    </div>
+    
+    {% if item.notes %}
+    <hr>
+    <div>
+        <h3>Notes</h3>
+        <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 4px; white-space: pre-wrap;">{{ item.notes }}</div>
+    </div>
+    {% endif %}
+</div>
+
+{% if current_user.has_permission('edit_inventory') %}
+<div class="card">
+    <h3>Quick Adjustment</h3>
+    <form method="POST" action="{{ url_for('inventory_adjust', id=item.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="form-group">
+                <label for="transaction_type">Type *</label>
+                <select id="transaction_type" name="transaction_type" class="form-control" required>
+                    <option value="in">Add Stock (Received)</option>
+                    <option value="out">Remove Stock (Used/Given)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="quantity">Quantity *</label>
+                <input type="number" id="quantity" name="quantity" min="1" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="reason">Reason *</label>
+                <select id="reason" name="reason" class="form-control" required>
+                    <option value="donation">Donation</option>
+                    <option value="purchase">Purchase</option>
+                    <option value="adoption">Adoption</option>
+                    <option value="used">Used/Consumed</option>
+                    <option value="waste">Waste/Expired</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <input type="text" id="notes" name="notes" class="form-control" placeholder="Optional details about this transaction">
+        </div>
+        <button type="submit" class="btn btn-success">Record Transaction</button>
+    </form>
+</div>
+{% endif %}
+
+<div class="card">
+    <h3>Transaction History</h3>
+    {% if item.transactions %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Reason</th>
+                <th>By</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaction in item.transactions|reverse %}
+            <tr>
+                <td>{{ transaction.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                <td>
+                    {% if transaction.transaction_type == 'in' %}
+                    <span style="color: #27ae60; font-weight: bold;">➕ IN</span>
+                    {% else %}
+                    <span style="color: #e74c3c; font-weight: bold;">➖ OUT</span>
+                    {% endif %}
+                </td>
+                <td><strong>{{ transaction.quantity }}</strong></td>
+                <td>{{ transaction.reason.replace('_', ' ').title() }}</td>
+                <td>{{ transaction.creator.username if transaction.creator else 'System' }}</td>
+                <td>{{ transaction.notes or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #7f8c8d;">No transactions recorded yet.</p>
+    {% endif %}
+</div>
+
+<style>
+.category-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+.category-cat {
+    background-color: #e7d5ff;
+    color: #5a1e8a;
+}
+.category-dog {
+    background-color: #cfe2ff;
+    color: #084298;
+}
+.category-general {
+    background-color: #d4edda;
+    color: #155724;
+}
+.category-medical {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+.category-cleaning {
+    background-color: #cff4fc;
+    color: #055160;
+}
+.category-food {
+    background-color: #fff3cd;
+    color: #856404;
+}
+</style>
+{% endblock %}
